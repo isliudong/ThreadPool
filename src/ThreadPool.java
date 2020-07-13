@@ -19,16 +19,20 @@ public class ThreadPool {
     //核心线程数
     private int coreSize;
 
+    //拒绝策略
+    private RejectPolicy<Runnable> rejectPolicy;
+
     //获取任务超时时间
     private long timeout;
     //超时时间单位
     private TimeUnit unit;
 
-    public ThreadPool(int coreSize, long timeout, TimeUnit unit, int capacity ) {
+    public ThreadPool(int coreSize, long timeout, TimeUnit unit, int capacity ,RejectPolicy<Runnable> rejectPolicy) {
         this.coreSize = coreSize;
         this.timeout = timeout;
         this.unit = unit;
         this.taskQueue=new BlockingQueue<>(capacity);
+        this.rejectPolicy=rejectPolicy;
     }
 
     //执行任务
@@ -41,8 +45,12 @@ public class ThreadPool {
                 worker.start();
 
             }else {
+                /*常见策略（策略模式：将策略抽象为接口，由调用者自己实现）:
+                死等、超时等待、让调用者放弃任务执行、让调用者抛出异常、让调用者自己执行任务
+                */
                 System.out.println("核心繁忙，当前任务:"+task.toString()+"加入任务队列");
-                taskQueue.put(task);
+                //taskQueue.put(task);
+                taskQueue.tryPut(rejectPolicy,task);
             }
         }
     }

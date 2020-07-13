@@ -100,8 +100,11 @@ public class BlockingQueue<T> {
             long nanos = unit.toNanos(timeout);
             while (queue.size() == capacity) {
                 try {
-                    if (nanos <= 0)
+                    if (nanos <= 0){
+                        System.out.println(t.toString()+"超时放弃任务false...");
                         return false;
+                    }
+
                     System.out.println("线程池任务队列繁忙" + "任务:" + t.toString() + "等待加入");
                     nanos = fullWait.awaitNanos(nanos);
                 } catch (InterruptedException e) {
@@ -127,5 +130,26 @@ public class BlockingQueue<T> {
         } finally {
             lock.unlock();
         }
+    }
+
+   //自定义添加策略
+    public void tryPut(RejectPolicy<T> rejectPolicy, T task) {
+            lock.lock();
+            try{
+                //判断队列是否满
+                if(queue.size()==capacity){
+                    //交由调用者自己实现队列满时具体策略
+                    rejectPolicy.reject(this,task);
+                }else {
+                    //空闲
+                    System.out.println(task.toString()+"加入任务队列");
+                    queue.addLast(task);
+                    emptyWait.signal();
+
+                }
+            }finally {
+                lock.unlock();
+            }
+
     }
 }
